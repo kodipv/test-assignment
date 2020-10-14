@@ -1,0 +1,42 @@
+version: '3'
+services:
+
+  backend:
+    build: .
+    restart: always
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./src:/usr/app/src
+
+  rabbitmq:
+    image: rabbitmq:3.8-management
+    restart: always
+    environment:
+      - RABBITMQ_DEFAULT_USER=user
+      - RABBITMQ_DEFAULT_PASS=password
+      - RABBITMQ_DEFAULT_VHOST=events_api
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+
+  worker:
+    build: .
+    restart: always
+    command: sh -c "dramatiq --processes 1 events_api.worker"
+    volumes:
+      - ./src:/usr/app/src
+    depends_on:
+      - rabbitmq
+    links:
+      - rabbitmq:rabbitmq
+
+  db:
+    image: postgres:10
+    restart: always
+    environment:
+      - POSTGRES_USER=user
+      - POSTGRES_PASSWORD=password
+      - POSTGRES_DB=events_api
+    ports:
+      - "5432:5432"
